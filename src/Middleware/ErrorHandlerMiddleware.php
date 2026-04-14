@@ -31,7 +31,7 @@ class ErrorHandlerMiddleware implements MiddlewareInterface
                 'message' => $e->getMessage(),
             ]);
         } catch (ValidationException $e) {
-            return $this->json(new Response(), 400, [
+            return $this->json(new Response(), $e->getStatusCode(), [
                 'status'  => 'error',
                 'message' => $e->getMessage(),
             ]);
