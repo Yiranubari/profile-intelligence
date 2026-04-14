@@ -1,0 +1,25 @@
+# Dependencies
+/vendor/
+
+# Environment
+.env
+
+# SQLite database
+/database/profiles.db
+
+# Logs
+/logs/*.log
+
+# PHPUnit cache
+.phpunit.result.cache
+phpunit.result.cache
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
