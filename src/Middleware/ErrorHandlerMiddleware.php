@@ -39,7 +39,7 @@ class ErrorHandlerMiddleware implements MiddlewareInterface
             ]);
         } catch (ExternalApiException $e) {
             return $this->json(new Response(), 502, [
-                'status'  => 'error', // Fixed status string to matching format
+                'status'  => '502',
                 'message' => $e->getMessage(),
             ]);
         } catch (HttpNotFoundException $e) {
@@ -55,7 +55,7 @@ class ErrorHandlerMiddleware implements MiddlewareInterface
         } catch (Throwable $e) {
             // Uncomment the next line during local development to see actual 500 errors in the logs
             // error_log($e->getMessage()); 
-
+            
             return $this->json(new Response(), 500, [
                 'status'  => 'error',
                 'message' => 'Internal server error',

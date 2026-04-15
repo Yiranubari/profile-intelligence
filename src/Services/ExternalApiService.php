@@ -28,19 +28,19 @@ class ExternalApiService
 
         if ($response === false) {
             $this->logger->error("Genderize API request failed for name: {$name}");
-            throw new ExternalApiException('Genderize');
+            throw new ExternalApiException('Genderize returned an invalid response');
         }
 
         $data = json_decode($response, true);
 
         if (!is_array($data) || !isset($data['gender']) || !isset($data['count']) || $data['gender'] === null || $data['count'] === 0) {
             $this->logger->error("Invalid Genderize API response for name: {$name}");
-            throw new ExternalApiException('Genderize');
+            throw new ExternalApiException('Genderize returned an invalid response');
         }
 
         return [
             'gender' => $data['gender'],
-            'gender_probability' => $data['probability'],
+            'gender_probability' => round($data['probability'], 2),
             'sample_size' => $data['count'],
         ];
     }
@@ -52,14 +52,14 @@ class ExternalApiService
 
         if ($response === false) {
             $this->logger->error("Agify API request failed for name: {$name}");
-            throw new ExternalApiException('Agify');
+            throw new ExternalApiException('Agify returned an invalid response');
         }
 
         $data = json_decode($response, true);
 
         if (!is_array($data) || !isset($data['age']) || $data['age'] === null) {
             $this->logger->error("Invalid Agify API response for name: {$name}");
-            throw new ExternalApiException('Agify');
+            throw new ExternalApiException('Agify returned an invalid response');
         }
 
         return [
@@ -75,14 +75,14 @@ class ExternalApiService
 
         if ($response === false) {
             $this->logger->error("Nationalize API request failed for name: {$name}");
-            throw new ExternalApiException('Nationalize');
+            throw new ExternalApiException('Nationalize returned an invalid response');
         }
 
         $data = json_decode($response, true);
 
         if (!is_array($data) || empty($data['country'])) {
             $this->logger->error("Invalid Nationalize API response for name: {$name}");
-            throw new ExternalApiException('Nationalize');
+            throw new ExternalApiException('Nationalize returned an invalid response');
         }
 
         $bestMatch = null;
@@ -97,7 +97,7 @@ class ExternalApiService
 
         return [
             'country_id' => $bestMatch['country_id'],
-            'country_probability' => $bestMatch['probability'],
+            'country_probability' => round($bestMatch['probability'], 2),
         ];
     }
 
