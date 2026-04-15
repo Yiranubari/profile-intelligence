@@ -1,0 +1,79 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Services\ProfileService;
+use App\Validators\ProfileValidator;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
+
+class ProfileController
+{
+    public function __construct(
+        private ProfileService $service,
+        private LoggerInterface $logger
+    ) {}
+
+    public function create(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $body = $request->getParsedBody() ?? [];
+        ProfileValidator::validate($body);
+
+        $name = trim($body['name']);
+        $profile = $this->service->createProfile($name);
+
+        return $this->json($response, 201, [
+            'status' => 'success',
+            'data' => $profile
+        ]);
+    }
+
+    public function getOne(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $id = $args['id'];
+        $profile = $this->service->getProfile($id);
+
+        return $this->json($response, 200, [
+            'status' => 'success',
+            'data' => $profile
+        ]);
+    }
+
+    public function getAll(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $queryParams = $request->getQueryParams();
+        $filters = [];
+
+        $allowedParams = ['gender', 'country_id', 'age_group'];
+        foreach ($allowedParams as $param) {
+            if (isset($queryParams[$param]) && $queryParams[$param] !== '') {
+                $filters[$param] = $queryParams[$param];
+            }
+        }
+
+        $profiles = $this->service->getAllProfiles($filters);
+
+        return $this->json($response, 200, [
+            'status' => 'success',
+            'count' => count($profiles),
+            'data' => $profiles
+        ]);
+    }
+
+    public function delete(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $id = $args['id'];
+        $this->service->deleteProfile($id);
+
+        return $response->withStatus(204);
+    }
+
+    private function json(ResponseInterface $response, int $status, array $data): ResponseInterface
+    {
+        $response->getBody()->write(json_encode($data));
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus($status);
+    }
+}
