@@ -55,7 +55,7 @@ class ErrorHandlerMiddleware implements MiddlewareInterface
         } catch (Throwable $e) {
             // Uncomment the next line during local development to see actual 500 errors in the logs
             // error_log($e->getMessage()); 
-            
+
             return $this->json(new Response(), 500, [
                 'status'  => 'error',
                 'message' => 'Internal server error',
