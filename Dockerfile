@@ -38,4 +38,4 @@ COPY docker/nginx.conf /etc/nginx/nginx.conf
 EXPOSE 8080
 
 # Start nginx and php-fpm
-CMD ["sh", "-c", "php-fpm -D && nginx -g 'daemon off;'"]
+CMD sed -i "s/listen 8080;/listen ${PORT:-8080};/g" /etc/nginx/nginx.conf && php-fpm -D && nginx -g "daemon off;"
