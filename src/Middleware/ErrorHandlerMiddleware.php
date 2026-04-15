@@ -10,6 +10,8 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Slim\Exception\HttpNotFoundException;
+use Slim\Exception\HttpMethodNotAllowedException;
 use Slim\Psr7\Response;
 use Throwable;
 
@@ -37,10 +39,23 @@ class ErrorHandlerMiddleware implements MiddlewareInterface
             ]);
         } catch (ExternalApiException $e) {
             return $this->json(new Response(), 502, [
-                'status'  => '502',
+                'status'  => 'error', // Fixed status string to matching format
                 'message' => $e->getMessage(),
             ]);
+        } catch (HttpNotFoundException $e) {
+            return $this->json(new Response(), 404, [
+                'status'  => 'error',
+                'message' => 'Endpoint not found',
+            ]);
+        } catch (HttpMethodNotAllowedException $e) {
+            return $this->json(new Response(), 405, [
+                'status'  => 'error',
+                'message' => 'Method not allowed for this endpoint',
+            ]);
         } catch (Throwable $e) {
+            // Uncomment the next line during local development to see actual 500 errors in the logs
+            // error_log($e->getMessage()); 
+            
             return $this->json(new Response(), 500, [
                 'status'  => 'error',
                 'message' => 'Internal server error',
