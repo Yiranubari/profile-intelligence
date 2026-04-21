@@ -41,25 +41,80 @@ class ProfileRepository
 
     public function findAll(array $filters = []): array
     {
-        $query = 'SELECT id, name, gender, age, age_group, country_id FROM profiles';
+        $selectQuery = 'SELECT id, name, gender, age, age_group, country_id, country_name FROM profiles';
+        $countQuery = 'SELECT COUNT(*) FROM profiles';
+
         $conditions = [];
         $params = [];
 
-        $allowedFilters = ['gender', 'country_id', 'age_group'];
-        foreach ($allowedFilters as $filter) {
+        $allowedStringFilters = ['gender', 'country_id', 'age_group'];
+        foreach ($allowedStringFilters as $filter) {
             if (isset($filters[$filter])) {
                 $conditions[] = "LOWER({$filter}) = LOWER(:{$filter})";
                 $params[$filter] = $filters[$filter];
             }
         }
 
-        if (!empty($conditions)) {
-            $query .= ' WHERE ' . implode(' AND ', $conditions);
+        if (isset($filters['min_age'])) {
+            $conditions[] = "age >= :min_age";
+            $params['min_age'] = (int) $filters['min_age'];
+        }
+        if (isset($filters['max_age'])) {
+            $conditions[] = "age <= :max_age";
+            $params['max_age'] = (int) $filters['max_age'];
+        }
+        if (isset($filters['min_gender_probability'])) {
+            $conditions[] = "gender_probability >= :min_gender_probability";
+            $params['min_gender_probability'] = (float) $filters['min_gender_probability'];
+        }
+        if (isset($filters['min_country_probability'])) {
+            $conditions[] = "country_probability >= :min_country_probability";
+            $params['min_country_probability'] = (float) $filters['min_country_probability'];
         }
 
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute($params);
-        return $stmt->fetchAll() ?: [];
+        $whereClause = '';
+        if (!empty($conditions)) {
+            $whereClause = ' WHERE ' . implode(' AND ', $conditions);
+        }
+
+        $selectQuery .= $whereClause;
+        $countQuery .= $whereClause;
+
+        $stmtCount = $this->pdo->prepare($countQuery);
+        $stmtCount->execute($params);
+        $total = (int) $stmtCount->fetchColumn();
+
+        $allowedSortColumns = ['age', 'created_at', 'gender_probability'];
+        if (isset($filters['sort_by']) && in_array($filters['sort_by'], $allowedSortColumns, true)) {
+            $order = isset($filters['order']) && strtolower($filters['order']) === 'desc' ? 'DESC' : 'ASC';
+            $selectQuery .= " ORDER BY {$filters['sort_by']} {$order}";
+        }
+
+        $page = isset($filters['page']) ? (int) $filters['page'] : 1;
+        $limit = isset($filters['limit']) ? (int) $filters['limit'] : 10;
+        if ($page < 1) $page = 1;
+        if ($limit < 1) $limit = 10;
+        if ($limit > 50) $limit = 50;
+
+        $offset = ($page - 1) * $limit;
+
+        $selectQuery .= " LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->pdo->prepare($selectQuery);
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(':' . $key, $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+
+        $stmt->execute();
+        $results = $stmt->fetchAll() ?: [];
+
+        return [
+            'data' => $results,
+            'total' => $total
+        ];
     }
 
     public function delete(string $id): bool
