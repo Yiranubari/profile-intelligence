@@ -17,9 +17,9 @@ class ProfileRepository
     {
         $stmt = $this->pdo->prepare(
             'INSERT INTO profiles 
-            (id, name, gender, gender_probability, sample_size, age, age_group, country_id, country_probability, created_at) 
-            VALUES 
-            (:id, :name, :gender, :gender_probability, :sample_size, :age, :age_group, :country_id, :country_probability, :created_at)'
+                (id, name, gender, gender_probability, sample_size, age, age_group, country_id, country_name, country_probability, created_at)
+                VALUES 
+                (:id, :name, :gender, :gender_probability, :sample_size, :age, :age_group, :country_id, :country_name, :country_probability, :created_at)'
         );
         $stmt->execute($data);
         return $this->findById($data['id']);

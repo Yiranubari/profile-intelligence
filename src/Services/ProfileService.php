@@ -34,6 +34,7 @@ class ProfileService
             'age' => $apiData['age'],
             'age_group' => $apiData['age_group'],
             'country_id' => $apiData['country_id'],
+            'country_name' => $apiData['country_name'],
             'country_probability' => $apiData['country_probability'],
             'created_at' => (new \DateTime('now', new \DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z'),
         ];
