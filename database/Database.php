@@ -18,6 +18,7 @@ class Database
             $this->connection = new PDO('sqlite:' . $path);
             $this->connection->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
             $this->initializeSchema();
+            $this->migrateSchema();
         } catch (PDOException $e) {
             throw new \RuntimeException("Database connection failed: " . $e->getMessage());
         }
@@ -51,8 +52,17 @@ class Database
     age_group          TEXT    NOT NULL,
     country_id         TEXT    NOT NULL,
     country_probability REAL   NOT NULL,
-    created_at         TEXT    NOT NULL
+    created_at         TEXT    NOT NULL,
+    country_name       TEXT    NOT NULL
 )"
         );
+    }
+
+    private function migrateSchema()
+    {
+        try {
+            $this->connection->exec("ALTER TABLE profiles ADD COLUMN country_name TEXT NOT NULL DEFAULT ''");
+        } catch (PDOException $e) {
+        }
     }
 }
