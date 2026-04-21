@@ -21,6 +21,8 @@ WORKDIR /var/www/html
 # Copy project files
 COPY . .
 
+RUN chmod +x docker/start.sh
+
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
@@ -39,4 +41,4 @@ COPY docker/nginx.conf /etc/nginx/nginx.conf
 EXPOSE 8080
 
 # Start nginx and php-fpm
-CMD sed -i "s/listen 8080;/listen ${PORT:-8080};/g" /etc/nginx/nginx.conf && php-fpm -D && nginx -g "daemon off;"
+CMD ["sh", "docker/start.sh"]
