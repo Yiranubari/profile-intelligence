@@ -8,6 +8,55 @@ use Psr\Log\LoggerInterface;
 
 class ExternalApiService
 {
+    private array $countryMap = [
+        'AE' => 'United Arab Emirates',
+        'AR' => 'Argentina',
+        'AT' => 'Austria',
+        'AU' => 'Australia',
+        'BE' => 'Belgium',
+        'BR' => 'Brazil',
+        'CA' => 'Canada',
+        'CH' => 'Switzerland',
+        'CN' => 'China',
+        'CO' => 'Colombia',
+        'DE' => 'Germany',
+        'DK' => 'Denmark',
+        'EG' => 'Egypt',
+        'ES' => 'Spain',
+        'FI' => 'Finland',
+        'FR' => 'France',
+        'GB' => 'United Kingdom',
+        'GR' => 'Greece',
+        'HK' => 'Hong Kong',
+        'ID' => 'Indonesia',
+        'IE' => 'Ireland',
+        'IL' => 'Israel',
+        'IN' => 'India',
+        'IT' => 'Italy',
+        'JP' => 'Japan',
+        'KR' => 'South Korea',
+        'MX' => 'Mexico',
+        'MY' => 'Malaysia',
+        'NG' => 'Nigeria',
+        'NL' => 'Netherlands',
+        'NO' => 'Norway',
+        'NZ' => 'New Zealand',
+        'PH' => 'Philippines',
+        'PL' => 'Poland',
+        'PT' => 'Portugal',
+        'RU' => 'Russia',
+        'SA' => 'Saudi Arabia',
+        'SE' => 'Sweden',
+        'SG' => 'Singapore',
+        'TH' => 'Thailand',
+        'TR' => 'Turkey',
+        'TW' => 'Taiwan',
+        'UA' => 'Ukraine',
+        'US' => 'United States',
+        'VN' => 'Vietnam',
+        'ZA' => 'South Africa',
+    ];
+
     public function __construct(
         private LoggerInterface $logger
     ) {}
@@ -95,9 +144,12 @@ class ExternalApiService
             }
         }
 
+        $countryId = $bestMatch['country_id'];
+
         return [
-            'country_id' => $bestMatch['country_id'],
+            'country_id' => $countryId,
             'country_probability' => round($bestMatch['probability'], 2),
+            'country_name' => $this->countryMap[$countryId] ?? $countryId,
         ];
     }
 
