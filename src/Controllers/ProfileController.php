@@ -7,6 +7,7 @@ use App\Validators\ProfileValidator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
+use App\Parsers\QueryParser;
 
 class ProfileController
 {
@@ -77,5 +78,45 @@ class ProfileController
         return $response
             ->withHeader('Content-Type', 'application/json')
             ->withStatus($status);
+    }
+
+    public function search(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $queryParams = $request->getQueryParams();
+        $q = trim($queryParams['q'] ?? '');
+
+        if ($q === '') {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => 'Missing or empty query'
+            ]);
+        }
+
+        $parser = new QueryParser();
+        $filters = $parser->parse($q);
+
+        if (isset($filters['_uninterpretable'])) {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => 'Unable to interpret query'
+            ]);
+        }
+
+        // Merge pagination params if present
+        foreach (['page', 'limit'] as $param) {
+            if (isset($queryParams[$param]) && $queryParams[$param] !== '') {
+                $filters[$param] = $queryParams[$param];
+            }
+        }
+
+        $result = $this->service->getAllProfiles($filters);
+
+        return $this->json($response, 200, [
+            'status' => 'success',
+            'page'   => (int) ($filters['page'] ?? 1),
+            'limit'  => (int) ($filters['limit'] ?? 10),
+            'total'  => $result['total'],
+            'data'   => $result['data']
+        ]);
     }
 }
