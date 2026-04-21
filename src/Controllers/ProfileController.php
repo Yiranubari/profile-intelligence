@@ -45,19 +45,21 @@ class ProfileController
         $queryParams = $request->getQueryParams();
         $filters = [];
 
-        $allowedParams = ['gender', 'country_id', 'age_group'];
+        $allowedParams = ['gender', 'country_id', 'age_group', 'min_age', 'max_age', 'min_gender_probability', 'min_country_probability', 'sort_by', 'order', 'page', 'limit'];
         foreach ($allowedParams as $param) {
             if (isset($queryParams[$param]) && $queryParams[$param] !== '') {
                 $filters[$param] = $queryParams[$param];
             }
         }
 
-        $profiles = $this->service->getAllProfiles($filters);
+        $result = $this->service->getAllProfiles($filters);
 
         return $this->json($response, 200, [
             'status' => 'success',
-            'count' => count($profiles),
-            'data' => $profiles
+            'page'   => (int) ($filters['page'] ?? 1),
+            'limit'  => (int) ($filters['limit'] ?? 10),
+            'total'  => $result['total'],
+            'data'   => $result['data']
         ]);
     }
 
