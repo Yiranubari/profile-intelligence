@@ -53,6 +53,47 @@ class ProfileController
             }
         }
 
+        // Validate numeric params
+        $numericParams = ['min_age', 'max_age', 'page', 'limit'];
+        foreach ($numericParams as $param) {
+            if (isset($filters[$param]) && !is_numeric($filters[$param])) {
+                return $this->json($response, 400, [
+                    'status' => 'error',
+                    'message' => 'Invalid query parameters'
+                ]);
+            }
+        }
+
+        // Validate sort_by
+        if (isset($filters['sort_by']) && !in_array($filters['sort_by'], ['age', 'created_at', 'gender_probability'], true)) {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => 'Invalid query parameters'
+            ]);
+        }
+
+        // Validate order
+        if (isset($filters['order']) && !in_array(strtolower($filters['order']), ['asc', 'desc'], true)) {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => 'Invalid query parameters'
+            ]);
+        }
+
+        // Validate probability ranges
+        $probabilityParams = ['min_gender_probability', 'min_country_probability'];
+        foreach ($probabilityParams as $param) {
+            if (isset($filters[$param])) {
+                $val = (float) $filters[$param];
+                if (!is_numeric($filters[$param]) || $val < 0 || $val > 1) {
+                    return $this->json($response, 400, [
+                        'status' => 'error',
+                        'message' => 'Invalid query parameters'
+                    ]);
+                }
+            }
+        }
+
         $result = $this->service->getAllProfiles($filters);
 
         return $this->json($response, 200, [
