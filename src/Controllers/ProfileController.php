@@ -104,13 +104,13 @@ class ProfileController
 
         $result = $this->service->getAllProfiles($filters);
 
-        return $this->json($response, 200, [
-            'status' => 'success',
-            'page'   => (int) ($filters['page'] ?? 1),
-            'limit'  => (int) ($filters['limit'] ?? 10),
-            'total'  => $result['total'],
-            'data'   => $result['data']
-        ]);
+        return $this->buildPaginatedResponse(
+            $response,
+            $result,
+            $filters,
+            '/api/profiles',
+            $request->getQueryParams()
+        );
     }
 
     public function delete(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
@@ -183,12 +183,51 @@ class ProfileController
 
         $result = $this->service->getAllProfiles($filters);
 
+        return $this->buildPaginatedResponse(
+            $response,
+            $result,
+            $filters,
+            '/api/profiles/search',
+            $request->getQueryParams()
+        );
+    }
+
+    private function buildPaginatedResponse(
+        ResponseInterface $response,
+        array $result,
+        array $filters,
+        string $basePath,
+        array $queryParams
+    ): ResponseInterface {
+        $page = (int) ($filters['page'] ?? 1);
+        $limit = (int) ($filters['limit'] ?? 10);
+        $total = (int) $result['total'];
+        $totalPages = $limit > 0 ? (int) ceil($total / $limit) : 0;
+
         return $this->json($response, 200, [
             'status' => 'success',
-            'page'   => (int) ($filters['page'] ?? 1),
-            'limit'  => (int) ($filters['limit'] ?? 10),
-            'total'  => $result['total'],
-            'data'   => $result['data']
+            'page' => $page,
+            'limit' => $limit,
+            'total' => $total,
+            'total_pages' => $totalPages,
+            'links' => $this->buildLinks($basePath, $queryParams, $page, $limit, $totalPages),
+            'data' => $result['data'],
         ]);
+    }
+
+    private function buildLinks(string $basePath, array $queryParams, int $page, int $limit, int $totalPages): array
+    {
+        $build = function (int $targetPage) use ($basePath, $queryParams, $limit) {
+            $params = $queryParams;
+            $params['page'] = $targetPage;
+            $params['limit'] = $limit;
+            return $basePath . '?' . http_build_query($params);
+        };
+
+        return [
+            'self' => $build($page),
+            'next' => $page < $totalPages ? $build($page + 1) : null,
+            'prev' => $page > 1 ? $build($page - 1) : null,
+        ];
     }
 }

@@ -1,23 +1,19 @@
 <?php
 
 use App\Controllers\ProfileController;
+use App\Middleware\ApiVersionMiddleware;
+use App\Middleware\AuthMiddleware;
 use Slim\App;
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Routing\RouteCollectorProxy;
 
 return function (App $app) {
-    // Health check route
-    $app->get('/', function (Request $request, Response $response) {
-        $response->getBody()->write(json_encode([
-            'status' => 'success',
-            'message' => 'Profile Intelligence API is running'
-        ]));
-        return $response->withHeader('Content-Type', 'application/json');
-    });
-
-    $app->post('/api/profiles', [ProfileController::class, 'create']);
-    $app->get('/api/profiles/search', [ProfileController::class, 'search']);
-    $app->get('/api/profiles', [ProfileController::class, 'getAll']);
-    $app->get('/api/profiles/{id}', [ProfileController::class, 'getOne']);
-    $app->delete('/api/profiles/{id}', [ProfileController::class, 'delete']);
+    $app->group('/api', function (RouteCollectorProxy $group) {
+        $group->get('/profiles', [ProfileController::class, 'getAll']);
+        $group->get('/profiles/search', [ProfileController::class, 'search']);
+        $group->get('/profiles/{id}', [ProfileController::class, 'getOne']);
+        $group->post('/profiles', [ProfileController::class, 'create']);
+        $group->delete('/profiles/{id}', [ProfileController::class, 'delete']);
+    })
+        ->add(AuthMiddleware::class)
+        ->add(ApiVersionMiddleware::class);
 };
