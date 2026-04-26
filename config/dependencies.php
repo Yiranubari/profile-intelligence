@@ -61,6 +61,62 @@ $containerBuilder->addDefinitions([
         );
     },
 
+
+
+    // Auth-related services
+    \App\Services\TokenService::class => function () {
+        return new \App\Services\TokenService(
+            $_ENV['JWT_SECRET'],
+            (int) ($_ENV['ACCESS_TOKEN_TTL'] ?? 180),
+            (int) ($_ENV['REFRESH_TOKEN_TTL'] ?? 300)
+        );
+    },
+
+    \App\Repositories\UserRepository::class => function (\Psr\Container\ContainerInterface $c) {
+        return new \App\Repositories\UserRepository(
+            $c->get(\App\Database\Database::class)->getConnection()
+        );
+    },
+
+    \App\Repositories\RefreshTokenRepository::class => function (\Psr\Container\ContainerInterface $c) {
+        return new \App\Repositories\RefreshTokenRepository(
+            $c->get(\App\Database\Database::class)->getConnection()
+        );
+    },
+
+    \GuzzleHttp\Client::class => function () {
+        return new \GuzzleHttp\Client([
+            'timeout' => 10,
+            'http_errors' => true,
+        ]);
+    },
+
+    \App\Services\AuthService::class => function (\Psr\Container\ContainerInterface $c) {
+        return new \App\Services\AuthService(
+            $c->get(\App\Repositories\UserRepository::class),
+            $c->get(\App\Repositories\RefreshTokenRepository::class),
+            $c->get(\App\Services\TokenService::class),
+            $c->get(\App\Database\Database::class)->getConnection(),
+            $c->get(\Psr\Log\LoggerInterface::class),
+            $c->get(\GuzzleHttp\Client::class),
+            $_ENV['GITHUB_CLIENT_ID'],
+            $_ENV['GITHUB_CLIENT_SECRET'],
+            $_ENV['GITHUB_REDIRECT_URI'],
+            (int) ($_ENV['REFRESH_TOKEN_TTL'] ?? 300)
+        );
+    },
+
+    \App\Controllers\AuthController::class => function (\Psr\Container\ContainerInterface $c) {
+        return new \App\Controllers\AuthController(
+            $c->get(\App\Services\AuthService::class),
+            $c->get(\Psr\Log\LoggerInterface::class),
+            $_ENV['WEB_PORTAL_URL'] ?? 'http://localhost:3000',
+            filter_var($_ENV['COOKIE_SECURE'] ?? 'false', FILTER_VALIDATE_BOOLEAN),
+            (int) ($_ENV['ACCESS_TOKEN_TTL'] ?? 180),
+            (int) ($_ENV['REFRESH_TOKEN_TTL'] ?? 300)
+        );
+    },
+
 ]);
 
 return $containerBuilder->build();

@@ -14,7 +14,6 @@ $container = require __DIR__ . '/../config/dependencies.php';
 AppFactory::setContainer($container);
 $app = AppFactory::create();
 
-// Middleware — order matters, outer to inner
 $app->add(JsonBodyParserMiddleware::class);
 $app->add(ErrorHandlerMiddleware::class);
 $app->add(LoggerMiddleware::class);
@@ -23,5 +22,8 @@ $app->add(CorsMiddleware::class);
 // Routes
 $routes = require __DIR__ . '/../src/Routes/api.php';
 $routes($app);
+
+$authRoutes = require __DIR__ . '/../src/Routes/auth.php';
+$authRoutes($app);
 
 $app->run();
