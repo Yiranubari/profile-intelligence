@@ -26,4 +26,15 @@ $routes($app);
 $authRoutes = require __DIR__ . '/../src/Routes/auth.php';
 $authRoutes($app);
 
+$app->get('/_debug', function ($req, $res) {
+    $res->getBody()->write(json_encode([
+        'env' => array_keys($_ENV),
+        'jwt_present' => !empty($_ENV['JWT_SECRET']),
+        'getenv_jwt' => !empty(getenv('JWT_SECRET')),
+        'github_id_present' => !empty($_ENV['GITHUB_CLIENT_ID']),
+    ]));
+
+    return $res->withHeader('Content-Type', 'application/json');
+});
+
 $app->run();
