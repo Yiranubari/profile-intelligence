@@ -41,7 +41,7 @@ class ProfileRepository
 
     public function findAll(array $filters = []): array
     {
-        $selectQuery = 'SELECT id, name, gender, age, age_group, country_id, country_name FROM profiles';
+        $selectQuery = 'SELECT id, name, gender, gender_probability, age, age_group, country_id, country_name, country_probability, created_at FROM profiles';
         $countQuery = 'SELECT COUNT(*) FROM profiles';
 
         $conditions = [];
