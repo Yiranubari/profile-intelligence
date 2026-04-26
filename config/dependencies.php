@@ -117,6 +117,22 @@ $containerBuilder->addDefinitions([
         );
     },
 
+    \App\Middleware\AuthMiddleware::class => function (\Psr\Container\ContainerInterface $c) {
+        return new \App\Middleware\AuthMiddleware(
+            $c->get(\App\Services\TokenService::class),
+            $c->get(\App\Repositories\UserRepository::class)
+        );
+    },
+
+    // RoleMiddleware is parameterized and needs named instances for route usage.
+    'role.admin' => function () {
+        return new \App\Middleware\RoleMiddleware('admin');
+    },
+
+    'role.analyst' => function () {
+        return new \App\Middleware\RoleMiddleware('analyst');
+    },
+
 ]);
 
 return $containerBuilder->build();
