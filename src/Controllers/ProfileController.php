@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\CsvExportService;
 use App\Services\ProfileService;
 use App\Validators\ProfileValidator;
 use Psr\Http\Message\ResponseInterface;
@@ -13,7 +14,8 @@ class ProfileController
 {
     public function __construct(
         private ProfileService $service,
-        private LoggerInterface $logger
+        private LoggerInterface $logger,
+        private CsvExportService $csvService
     ) {}
 
     public function create(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -190,6 +192,30 @@ class ProfileController
             '/api/profiles/search',
             $request->getQueryParams()
         );
+    }
+
+    public function export(ServerRequestInterface $request, \Psr\Http\Message\ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    {
+        $queryParams = $request->getQueryParams();
+
+        if (($queryParams['format'] ?? 'csv') !== 'csv') {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => 'Unsupported export format',
+            ]);
+        }
+
+        $filters = [];
+        $allowedParams = ['gender', 'country_id', 'age_group', 'min_age', 'max_age', 'min_gender_probability', 'min_country_probability', 'sort_by', 'order'];
+        foreach ($allowedParams as $param) {
+            if (isset($queryParams[$param]) && $queryParams[$param] !== '') {
+                $filters[$param] = $queryParams[$param];
+            }
+        }
+
+        $rows = $this->service->exportProfiles($filters);
+
+        return $this->csvService->streamCsv($rows, $response);
     }
 
     private function buildPaginatedResponse(

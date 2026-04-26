@@ -2,6 +2,7 @@
 
 use App\Database\Database;
 use App\Repositories\ProfileRepository;
+use App\Services\CsvExportService;
 use App\Services\ExternalApiService;
 use App\Services\ProfileService;
 use App\Controllers\ProfileController;
@@ -53,11 +54,16 @@ $containerBuilder->addDefinitions([
         );
     },
 
+    CsvExportService::class => function () {
+        return new CsvExportService();
+    },
+
     // Controller
     ProfileController::class => function (ContainerInterface $container) {
         return new ProfileController(
             $container->get(ProfileService::class),
-            $container->get(LoggerInterface::class)
+            $container->get(LoggerInterface::class),
+            $container->get(CsvExportService::class)
         );
     },
 

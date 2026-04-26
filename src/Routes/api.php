@@ -10,9 +10,12 @@ return function (App $app) {
     $app->group('/api', function (RouteCollectorProxy $group) {
         $group->get('/profiles', [ProfileController::class, 'getAll']);
         $group->get('/profiles/search', [ProfileController::class, 'search']);
+        $group->get('/profiles/export', [ProfileController::class, 'export']);
         $group->get('/profiles/{id}', [ProfileController::class, 'getOne']);
-        $group->post('/profiles', [ProfileController::class, 'create']);
-        $group->delete('/profiles/{id}', [ProfileController::class, 'delete']);
+        $group->post('/profiles', [ProfileController::class, 'create'])
+            ->add('role.admin');
+        $group->delete('/profiles/{id}', [ProfileController::class, 'delete'])
+            ->add('role.admin');
     })
         ->add(AuthMiddleware::class)
         ->add(ApiVersionMiddleware::class);
