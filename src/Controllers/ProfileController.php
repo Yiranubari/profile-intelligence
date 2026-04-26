@@ -64,6 +64,14 @@ class ProfileController
             }
         }
 
+        // Normalize sort params before validation
+        if (isset($filters['sort_by'])) {
+            $filters['sort_by'] = strtolower(trim($filters['sort_by']));
+        }
+        if (isset($filters['order'])) {
+            $filters['order'] = strtolower(trim($filters['order']));
+        }
+
         // Validate sort_by
         if (isset($filters['sort_by']) && !in_array($filters['sort_by'], ['age', 'created_at', 'gender_probability'], true)) {
             return $this->json($response, 400, [
@@ -73,7 +81,7 @@ class ProfileController
         }
 
         // Validate order
-        if (isset($filters['order']) && !in_array(strtolower($filters['order']), ['asc', 'desc'], true)) {
+        if (isset($filters['order']) && !in_array($filters['order'], ['asc', 'desc'], true)) {
             return $this->json($response, 400, [
                 'status' => 'error',
                 'message' => 'Invalid query parameters'
@@ -143,11 +151,34 @@ class ProfileController
             ]);
         }
 
-        // Merge pagination params if present
-        foreach (['page', 'limit'] as $param) {
+        // Merge pagination and sort params if present
+        foreach (['page', 'limit', 'sort_by', 'order'] as $param) {
             if (isset($queryParams[$param]) && $queryParams[$param] !== '') {
                 $filters[$param] = $queryParams[$param];
             }
+        }
+
+        // Normalize sort params before validation
+        if (isset($filters['sort_by'])) {
+            $filters['sort_by'] = strtolower(trim($filters['sort_by']));
+        }
+        if (isset($filters['order'])) {
+            $filters['order'] = strtolower(trim($filters['order']));
+        }
+
+        // Validate sort params
+        if (isset($filters['sort_by']) && !in_array($filters['sort_by'], ['age', 'created_at', 'gender_probability'], true)) {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => 'Invalid query parameters'
+            ]);
+        }
+
+        if (isset($filters['order']) && !in_array($filters['order'], ['asc', 'desc'], true)) {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => 'Invalid query parameters'
+            ]);
         }
 
         $result = $this->service->getAllProfiles($filters);
