@@ -91,12 +91,12 @@ class Database
             PRIMARY KEY (key, window_start)
         )"
         );
-
         $this->connection->exec(
             "CREATE TABLE IF NOT EXISTS auth_sessions (
         state          TEXT    NOT NULL PRIMARY KEY,
         code_challenge TEXT,
         client_type    TEXT    NOT NULL,
+        cli_port       INTEGER,
         auth_code      TEXT    UNIQUE,
         user_id        TEXT,
         consumed       INTEGER NOT NULL DEFAULT 0,

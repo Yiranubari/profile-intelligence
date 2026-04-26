@@ -28,7 +28,7 @@ class AuthService
         private int $refreshTtl
     ) {}
 
-    public function startOAuthFlow(string $clientType, ?string $codeChallenge = null): string
+    public function startOAuthFlow(string $clientType, ?string $codeChallenge = null, ?int $cliPort = null): string
     {
         if (!in_array($clientType, ['web', 'cli'], true)) {
             throw new UnauthorizedException('Invalid client type');
@@ -134,6 +134,7 @@ class AuthService
         return [
             'client_type' => 'cli',
             'auth_code' => $authCode,
+            'cli_port' => (int) $session['cli_port'],
         ];
     }
 
