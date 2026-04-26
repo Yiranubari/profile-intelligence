@@ -1,6 +1,7 @@
 <?php
 
 use App\Controllers\AuthController;
+use App\Middleware\AuthMiddleware;
 use Slim\App;
 
 return function (App $app) {
@@ -9,5 +10,5 @@ return function (App $app) {
     $app->post('/auth/cli/exchange', [AuthController::class, 'exchangeCli']);
     $app->post('/auth/refresh', [AuthController::class, 'refresh']);
     $app->post('/auth/logout', [AuthController::class, 'logout']);
-    $app->get('/auth/me', [AuthController::class, 'me']);
+    $app->get('/auth/me', [AuthController::class, 'me'])->add(AuthMiddleware::class);
 };
