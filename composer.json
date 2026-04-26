@@ -4,6 +4,8 @@
   "type": "project",
   "require": {
     "php": "^8.2",
+    "firebase/php-jwt": "^7.0",
+    "guzzlehttp/guzzle": "^7.10",
     "monolog/monolog": "^3.8",
     "php-di/php-di": "^7.1",
     "respect/validation": "^2.3",
