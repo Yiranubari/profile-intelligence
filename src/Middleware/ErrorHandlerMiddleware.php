@@ -17,6 +17,8 @@ use Throwable;
 
 class ErrorHandlerMiddleware implements MiddlewareInterface
 {
+    use JsonResponseTrait;
+
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         try {
@@ -61,13 +63,5 @@ class ErrorHandlerMiddleware implements MiddlewareInterface
                 'message' => 'Internal server error',
             ]);
         }
-    }
-
-    private function json(ResponseInterface $response, int $status, array $data): ResponseInterface
-    {
-        $response->getBody()->write(json_encode($data));
-        return $response
-            ->withStatus($status)
-            ->withHeader('Content-Type', 'application/json');
     }
 }
