@@ -117,6 +117,54 @@ class ProfileRepository
         ];
     }
 
+    public function findAllForExport(array $filters = []): array
+    {
+        $query = 'SELECT id, name, gender, gender_probability, age, age_group, country_id, country_name, country_probability, created_at FROM profiles';
+
+        $conditions = [];
+        $params = [];
+
+        $allowedStringFilters = ['gender', 'country_id', 'age_group'];
+        foreach ($allowedStringFilters as $filter) {
+            if (isset($filters[$filter])) {
+                $conditions[] = "LOWER({$filter}) = LOWER(:{$filter})";
+                $params[$filter] = $filters[$filter];
+            }
+        }
+
+        if (isset($filters['min_age'])) {
+            $conditions[] = "age >= :min_age";
+            $params['min_age'] = (int) $filters['min_age'];
+        }
+        if (isset($filters['max_age'])) {
+            $conditions[] = "age <= :max_age";
+            $params['max_age'] = (int) $filters['max_age'];
+        }
+        if (isset($filters['min_gender_probability'])) {
+            $conditions[] = "gender_probability >= :min_gender_probability";
+            $params['min_gender_probability'] = (float) $filters['min_gender_probability'];
+        }
+        if (isset($filters['min_country_probability'])) {
+            $conditions[] = "country_probability >= :min_country_probability";
+            $params['min_country_probability'] = (float) $filters['min_country_probability'];
+        }
+
+        if (!empty($conditions)) {
+            $query .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+
+        $allowedSortColumns = ['age', 'created_at', 'gender_probability'];
+        if (isset($filters['sort_by']) && in_array($filters['sort_by'], $allowedSortColumns, true)) {
+            $order = isset($filters['order']) && strtolower($filters['order']) === 'desc' ? 'DESC' : 'ASC';
+            $query .= " ORDER BY {$filters['sort_by']} {$order}";
+        }
+
+        $stmt = $this->pdo->prepare($query);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll() ?: [];
+    }
+
     public function delete(string $id): bool
     {
         $stmt = $this->pdo->prepare('DELETE FROM profiles WHERE id = :id');

@@ -58,6 +58,11 @@ class ProfileService
         return $this->repository->findAll($filters);
     }
 
+    public function exportProfiles(array $filters = []): array
+    {
+        return $this->repository->findAllForExport($filters);
+    }
+
     public function deleteProfile(string $id): void
     {
         if (!$this->repository->delete($id)) {
