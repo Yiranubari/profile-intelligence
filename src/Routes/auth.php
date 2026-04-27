@@ -3,12 +3,15 @@
 use App\Controllers\AuthController;
 use App\Middleware\AuthMiddleware;
 use Slim\App;
+use Slim\Routing\RouteCollectorProxy;
 
 return function (App $app) {
-    $app->get('/auth/github', [AuthController::class, 'redirectToGithub']);
-    $app->get('/auth/github/callback', [AuthController::class, 'handleCallback']);
-    $app->post('/auth/cli/exchange', [AuthController::class, 'exchangeCli']);
-    $app->post('/auth/refresh', [AuthController::class, 'refresh']);
-    $app->post('/auth/logout', [AuthController::class, 'logout']);
-    $app->get('/auth/me', [AuthController::class, 'me'])->add(AuthMiddleware::class);
+    $app->group('/auth', function (RouteCollectorProxy $group) {
+        $group->get('/github', [AuthController::class, 'redirectToGithub']);
+        $group->get('/github/callback', [AuthController::class, 'handleCallback']);
+        $group->post('/cli/exchange', [AuthController::class, 'exchangeCli']);
+        $group->post('/refresh', [AuthController::class, 'refresh']);
+        $group->post('/logout', [AuthController::class, 'logout']);
+        $group->get('/me', [AuthController::class, 'me'])->add(AuthMiddleware::class);
+    })->add('rate.auth');
 };
