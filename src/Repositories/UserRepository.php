@@ -32,6 +32,12 @@ class UserRepository
         return $stmt->fetch() ?: null;
     }
 
+    public function findAll(): array
+    {
+        $stmt = $this->pdo->query('SELECT id, github_id, username, email, avatar_url, role, is_active, last_login_at, created_at FROM users ORDER BY created_at DESC');
+        return $stmt->fetchAll() ?: [];
+    }
+
     public function create(array $data): array
     {
         $stmt = $this->pdo->prepare(
@@ -75,6 +81,14 @@ class UserRepository
             'avatar_url' => $data['avatar_url'] ?? null,
             'id' => $id,
         ]);
+
+        return $this->findById($id) ?: [];
+    }
+
+    public function updateRole(string $id, string $role): array
+    {
+        $stmt = $this->pdo->prepare('UPDATE users SET role = :role WHERE id = :id');
+        $stmt->execute(['role' => $role, 'id' => $id]);
 
         return $this->findById($id) ?: [];
     }
