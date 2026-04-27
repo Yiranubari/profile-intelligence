@@ -136,6 +136,10 @@ $containerBuilder->addDefinitions([
         );
     },
 
+    \App\Middleware\CsrfMiddleware::class => function () {
+        return new \App\Middleware\CsrfMiddleware();
+    },
+
     // RoleMiddleware is parameterized and needs named instances for route usage.
     'role.admin' => function () {
         return new \App\Middleware\RoleMiddleware('admin');

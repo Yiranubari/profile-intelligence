@@ -4,6 +4,7 @@ use App\Controllers\ProfileController;
 use App\Controllers\UserController;
 use App\Middleware\ApiVersionMiddleware;
 use App\Middleware\AuthMiddleware;
+use App\Middleware\CsrfMiddleware;
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
 
@@ -25,6 +26,7 @@ return function (App $app) {
         $group->patch('/users/{id}/role', [UserController::class, 'updateRole'])
             ->add('role.admin');
     })
+        ->add(CsrfMiddleware::class)
         ->add('rate.api')
         ->add(AuthMiddleware::class)
         ->add(ApiVersionMiddleware::class);
