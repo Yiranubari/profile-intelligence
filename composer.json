@@ -1,6 +1,7 @@
 {
   "name": "yiranubari/profile-intelligence",
   "description": "Profile Intelligence Service API",
+  "license": "MIT",
   "type": "project",
   "require": {
     "php": "^8.2",
