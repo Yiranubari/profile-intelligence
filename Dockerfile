@@ -27,12 +27,10 @@ RUN chmod +x docker/start.sh
 RUN composer install --no-dev --optimize-autoloader
 
 # Create necessary directories and set permissions
-RUN mkdir -p /var/www/html/database \
-    && mkdir -p /var/www/html/logs \
+RUN mkdir -p /var/www/html/database /var/www/html/logs \
     && chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html \
-    && chmod -R 775 /var/www/html/database \
-    && chmod -R 775 /var/www/html/logs
+    && chmod -R u+rwX,g+rwX,o+rX /var/www/html \
+    && chmod -R 775 /var/www/html/database /var/www/html/logs
 
 # Copy nginx config
 COPY docker/nginx.conf /etc/nginx/nginx.conf
