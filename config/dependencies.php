@@ -145,6 +145,22 @@ $containerBuilder->addDefinitions([
         return new \App\Middleware\RoleMiddleware('analyst');
     },
 
+    'rate.auth' => function (\Psr\Container\ContainerInterface $c) {
+        return new \App\Middleware\RateLimitMiddleware(
+            $c->get(\App\Database\Database::class)->getConnection(),
+            10,
+            'auth'
+        );
+    },
+
+    'rate.api' => function (\Psr\Container\ContainerInterface $c) {
+        return new \App\Middleware\RateLimitMiddleware(
+            $c->get(\App\Database\Database::class)->getConnection(),
+            60,
+            'api'
+        );
+    },
+
 ]);
 
 return $containerBuilder->build();
