@@ -37,6 +37,25 @@ $app->get('/_debug', function ($req, $res) {
     return $res->withHeader('Content-Type', 'application/json');
 });
 
+$app->get('/_debug2', function ($req, $res) use ($container) {
+    try {
+        $authService = $container->get(\App\Services\AuthService::class);
+        $url = $authService->startOAuthFlow('web');
+        $res->getBody()->write(json_encode(['ok' => true, 'url' => $url]));
+    } catch (\Throwable $e) {
+        $res->getBody()->write(json_encode([
+            'ok' => false,
+            'error' => $e->getMessage(),
+            'class' => get_class($e),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => array_slice(explode("\n", $e->getTraceAsString()), 0, 8),
+        ]));
+    }
+
+    return $res->withHeader('Content-Type', 'application/json');
+});
+
 $app->get('/_oauth_test', function ($req, $res) use ($container) {
     try {
         $authService = $container->get(\App\Services\AuthService::class);
