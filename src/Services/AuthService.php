@@ -93,13 +93,16 @@ class AuthService
             $this->users->updateLastLogin($user['id']);
             $user = $this->users->findById($user['id']) ?? $user;
         } else {
+            $userCountStmt = $this->pdo->query('SELECT COUNT(*) FROM users');
+            $isFirstUser = (int) $userCountStmt->fetchColumn() === 0;
+
             $user = $this->users->create([
                 'id' => UuidHelper::generate(),
                 'github_id' => $githubId,
                 'username' => $username,
                 'email' => $email,
                 'avatar_url' => $avatarUrl,
-                'role' => 'analyst',
+                'role' => $isFirstUser ? 'admin' : 'analyst',
                 'created_at' => $this->nowUtc(),
             ]);
             $this->users->updateLastLogin($user['id']);

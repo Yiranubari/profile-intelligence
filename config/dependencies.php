@@ -123,6 +123,12 @@ $containerBuilder->addDefinitions([
         );
     },
 
+    \App\Controllers\UserController::class => function (\Psr\Container\ContainerInterface $c) {
+        return new \App\Controllers\UserController(
+            $c->get(\App\Repositories\UserRepository::class)
+        );
+    },
+
     \App\Middleware\AuthMiddleware::class => function (\Psr\Container\ContainerInterface $c) {
         return new \App\Middleware\AuthMiddleware(
             $c->get(\App\Services\TokenService::class),
