@@ -43,13 +43,14 @@ class AuthService
         $expiresAt = $this->utcPlusSeconds(600);
 
         $stmt = $this->pdo->prepare(
-            'INSERT INTO auth_sessions (state, code_challenge, client_type, expires_at, created_at)
-			 VALUES (:state, :code_challenge, :client_type, :expires_at, :created_at)'
+            'INSERT INTO auth_sessions (state, code_challenge, client_type, cli_port, expires_at, created_at)
+			 VALUES (:state, :code_challenge, :client_type, :cli_port, :expires_at, :created_at)'
         );
         $stmt->execute([
             'state' => $state,
             'code_challenge' => $codeChallenge,
             'client_type' => $clientType,
+            'cli_port' => $cliPort,
             'expires_at' => $expiresAt,
             'created_at' => $now,
         ]);
