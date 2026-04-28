@@ -169,15 +169,15 @@ class AuthController
 
         $response = $response->withAddedHeader(
             'Set-Cookie',
-            "access_token={$accessToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age={$this->accessTtl}{$secureFlag}"
+            "access_token={$accessToken}; Path=/; HttpOnly; SameSite=None; Max-Age={$this->accessTtl}{$secureFlag}"
         );
         $response = $response->withAddedHeader(
             'Set-Cookie',
-            "refresh_token={$refreshToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age={$this->refreshTtl}{$secureFlag}"
+            "refresh_token={$refreshToken}; Path=/; HttpOnly; SameSite=None; Max-Age={$this->refreshTtl}{$secureFlag}"
         );
         $response = $response->withAddedHeader(
             'Set-Cookie',
-            "csrf_token={$csrfToken}; Path=/; SameSite=Lax; Max-Age={$this->refreshTtl}{$secureFlag}"
+            "csrf_token={$csrfToken}; Path=/; SameSite=None; Max-Age={$this->refreshTtl}{$secureFlag}"
         );
 
         return $response;
@@ -190,7 +190,7 @@ class AuthController
         foreach (['access_token', 'refresh_token', 'csrf_token'] as $name) {
             $response = $response->withAddedHeader(
                 'Set-Cookie',
-                "{$name}=; Path=/; Max-Age=0; SameSite=Lax{$secureFlag}"
+                "{$name}=; Path=/; Max-Age=0; SameSite=None{$secureFlag}"
             );
         }
 
