@@ -28,7 +28,7 @@ class AuthService
         private int $refreshTtl
     ) {}
 
-    public function startOAuthFlow(string $clientType, ?string $codeChallenge = null, ?int $cliPort = null): string
+    public function startOAuthFlow(string $clientType, ?string $codeChallenge = null, ?int $cliPort = null, ?string $cliState = null): string
     {
         if (!in_array($clientType, ['web', 'cli'], true)) {
             throw new UnauthorizedException('Invalid client type');
@@ -43,14 +43,15 @@ class AuthService
         $expiresAt = $this->utcPlusSeconds(600);
 
         $stmt = $this->pdo->prepare(
-            'INSERT INTO auth_sessions (state, code_challenge, client_type, cli_port, expires_at, created_at)
-			 VALUES (:state, :code_challenge, :client_type, :cli_port, :expires_at, :created_at)'
+            'INSERT INTO auth_sessions (state, code_challenge, client_type, cli_port, cli_state, expires_at, created_at)
+			 VALUES (:state, :code_challenge, :client_type, :cli_port, :cli_state, :expires_at, :created_at)'
         );
         $stmt->execute([
             'state' => $state,
             'code_challenge' => $codeChallenge,
             'client_type' => $clientType,
             'cli_port' => $cliPort,
+            'cli_state' => $cliState,
             'expires_at' => $expiresAt,
             'created_at' => $now,
         ]);
@@ -139,6 +140,7 @@ class AuthService
             'client_type' => 'cli',
             'auth_code' => $authCode,
             'cli_port' => (int) $session['cli_port'],
+            'cli_state' => $session['cli_state'] ?? null,
         ];
     }
 
