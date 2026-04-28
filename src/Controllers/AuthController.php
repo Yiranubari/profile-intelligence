@@ -2,8 +2,6 @@
 
 namespace App\Controllers;
 
-use App\Exceptions\OAuthException;
-use App\Exceptions\UnauthorizedException;
 use App\Services\AuthService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -26,8 +24,9 @@ class AuthController
         $clientType = $params['client_type'] ?? 'web';
         $codeChallenge = $params['code_challenge'] ?? null;
         $cliPort = isset($params['cli_port']) ? (int) $params['cli_port'] : null;
+        $cliState = $params['cli_state'] ?? null;
 
-        $githubUrl = $this->authService->startOAuthFlow($clientType, $codeChallenge, $cliPort);
+        $githubUrl = $this->authService->startOAuthFlow($clientType, $codeChallenge, $cliPort, $cliState);
 
         return $response->withHeader('Location', $githubUrl)->withStatus(302);
     }
@@ -56,7 +55,8 @@ class AuthController
 
         $port = $result['cli_port'];
         $authCode = $result['auth_code'];
-        $cliRedirect = "http://localhost:{$port}/callback?auth_code={$authCode}&state={$state}";
+        $cliState = $result['cli_state'] ?? '';
+        $cliRedirect = "http://localhost:{$port}/callback?auth_code={$authCode}&state={$cliState}";
 
         return $response->withHeader('Location', $cliRedirect)->withStatus(302);
     }

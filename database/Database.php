@@ -97,6 +97,7 @@ class Database
         code_challenge TEXT,
         client_type    TEXT    NOT NULL,
         cli_port       INTEGER,
+        cli_state      TEXT,
         auth_code      TEXT    UNIQUE,
         user_id        TEXT,
         consumed       INTEGER NOT NULL DEFAULT 0,
