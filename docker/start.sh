@@ -1,10 +1,14 @@
 #!/bin/sh
+DB_DIR="$(dirname "${DB_PATH:-/var/www/html/database/profiles.db}")"
+
+mkdir -p "$DB_DIR"
+chown -R www-data:www-data "$DB_DIR"
+chmod -R 775 "$DB_DIR"
 
 php /var/www/html/database/seed.php
 
-# Make sure the seeded database is writable by php-fpm's user
-chown -R www-data:www-data /var/www/html/database
-chmod -R 775 /var/www/html/database
+chown -R www-data:www-data "$DB_DIR"
+chmod -R 775 "$DB_DIR"
 
 php-fpm -D
 nginx -g 'daemon off;'
