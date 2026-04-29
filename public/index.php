@@ -26,23 +26,20 @@ $routes($app);
 $authRoutes = require __DIR__ . '/../src/Routes/auth.php';
 $authRoutes($app);
 
-$app->get('/_oauth_test', function ($req, $res) use ($container) {
-    try {
-        $authService = $container->get(\App\Services\AuthService::class);
-        $url = $authService->startOAuthFlow('web');
-        $res->getBody()->write(json_encode(['ok' => true, 'url' => $url]));
-    } catch (\Throwable $e) {
-        $res->getBody()->write(json_encode([
-            'ok' => false,
-            'error' => $e->getMessage(),
-            'class' => get_class($e),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString(),
-        ]));
-    }
-
+$app->get('/', function ($req, $res) {
+    $res->getBody()->write(json_encode([
+        'status' => 'success',
+        'service' => 'Insighta Labs+',
+        'version' => '1.0.0',
+    ]));
     return $res->withHeader('Content-Type', 'application/json');
 });
 
+$app->get('/health', function ($req, $res) {
+    $res->getBody()->write(json_encode([
+        'status' => 'success',
+        'message' => 'OK',
+    ]));
+    return $res->withHeader('Content-Type', 'application/json');
+});
 $app->run();
