@@ -44,7 +44,7 @@ class RateLimitMiddleware implements MiddlewareInterface
 
         $remaining = max(0, $this->limit - $count);
 
-        if ($count > $this->limit) {
+        if ($count >= $this->limit) {
             return $this->json(new Response(), 429, [
                 'status' => 'error',
                 'message' => 'Too Many Requests',

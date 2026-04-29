@@ -14,6 +14,8 @@ use Slim\Exception\HttpNotFoundException;
 use Slim\Exception\HttpMethodNotAllowedException;
 use Slim\Psr7\Response;
 use Throwable;
+use App\Exceptions\UnauthorizedException;
+use App\Exceptions\OAuthException;
 
 class ErrorHandlerMiddleware implements MiddlewareInterface
 {
@@ -54,9 +56,18 @@ class ErrorHandlerMiddleware implements MiddlewareInterface
                 'status'  => 'error',
                 'message' => 'Method not allowed for this endpoint',
             ]);
+        } catch (UnauthorizedException $e) {
+            return $this->json(new Response(), 401, [
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        } catch (OAuthException $e) {
+            return $this->json(new Response(), 400, [
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ]);
         } catch (Throwable $e) {
-            // Uncomment the next line during local development to see actual 500 errors in the logs
-            // error_log($e->getMessage()); 
+            error_log($e->getMessage());
 
             return $this->json(new Response(), 500, [
                 'status'  => 'error',

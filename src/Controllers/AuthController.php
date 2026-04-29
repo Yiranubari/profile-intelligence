@@ -44,7 +44,25 @@ class AuthController
             ]);
         }
 
-        $result = $this->authService->handleCallback($code, $state);
+        try {
+            $result = $this->authService->handleCallback($code, $state);
+        } catch (\App\Exceptions\UnauthorizedException $e) {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\App\Exceptions\OAuthException $e) {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('OAuth callback failed', ['exception' => $e->getMessage()]);
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => 'OAuth callback failed',
+            ]);
+        }
 
         if ($result['client_type'] === 'web') {
             $response = $this->setAuthCookies($response, $result['access_token'], $result['refresh_token']);
@@ -74,7 +92,20 @@ class AuthController
             ]);
         }
 
-        $result = $this->authService->exchangeAuthCode($authCode, $codeVerifier);
+        try {
+            $result = $this->authService->exchangeAuthCode($authCode, $codeVerifier);
+        } catch (\App\Exceptions\UnauthorizedException $e) {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('CLI exchange failed', ['exception' => $e->getMessage()]);
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => 'Exchange failed',
+            ]);
+        }
 
         return $this->json($response, 200, [
             'status' => 'success',
@@ -106,7 +137,20 @@ class AuthController
             ]);
         }
 
-        $result = $this->authService->refresh($token);
+        try {
+            $result = $this->authService->refresh($token);
+        } catch (\App\Exceptions\UnauthorizedException $e) {
+            return $this->json($response, 401, [
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error('Refresh failed', ['exception' => $e->getMessage()]);
+            return $this->json($response, 401, [
+                'status' => 'error',
+                'message' => 'Refresh failed',
+            ]);
+        }
 
         $cookies = $request->getCookieParams();
         if (isset($cookies['refresh_token'])) {
@@ -129,8 +173,18 @@ class AuthController
             $token = $cookies['refresh_token'] ?? null;
         }
 
-        if ($token) {
+        if (!$token) {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => 'Missing refresh token',
+            ]);
+        }
+
+        try {
             $this->authService->logout($token);
+        } catch (\Throwable $e) {
+            $this->logger->error('Logout failed', ['exception' => $e->getMessage()]);
+            // Continue to clear cookies regardless — logout should be idempotent.
         }
 
         $response = $this->clearAuthCookies($response);
