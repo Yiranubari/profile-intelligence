@@ -9,7 +9,6 @@ use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
 
 return function (App $app) {
-    $app->post('/admin/wipe-users', [UserController::class, 'wipeUsers']);
     $app->group('/api', function (RouteCollectorProxy $group) {
         // Profiles
         $group->get('/profiles', [ProfileController::class, 'getAll']);

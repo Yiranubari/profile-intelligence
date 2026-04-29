@@ -65,24 +65,4 @@ class UserController
             ->withHeader('Content-Type', 'application/json')
             ->withStatus($status);
     }
-
-    public function wipeUsers(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
-    {
-        $secret = $request->getQueryParams()['secret'] ?? '';
-        $expected = $_ENV['WIPE_SECRET'] ?? null;
-
-        if (!$expected || !is_string($secret) || !hash_equals($expected, $secret)) {
-            return $this->json($response, 404, [
-                'status' => 'error',
-                'message' => 'Not found',
-            ]);
-        }
-
-        $count = $this->users->wipeAll();
-
-        return $this->json($response, 200, [
-            'status' => 'success',
-            'message' => "Wiped {$count} users",
-        ]);
-    }
 }
