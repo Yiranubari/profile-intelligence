@@ -22,6 +22,7 @@ return function (App $app) {
             ->add('role.admin');
 
         // Users (admin only)
+        $group->get('/users/me', [\App\Controllers\AuthController::class, 'me']);
         $group->get('/users', [UserController::class, 'listAll'])
             ->add('role.admin');
         $group->patch('/users/{id}/role', [UserController::class, 'updateRole'])
