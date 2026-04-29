@@ -92,4 +92,11 @@ class UserRepository
 
         return $this->findById($id) ?: [];
     }
+
+    public function wipeAll(): int
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM users');
+        $stmt->execute();
+        return $stmt->rowCount();
+    }
 }
