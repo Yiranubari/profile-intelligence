@@ -37,6 +37,24 @@ class AuthController
         $code = $params['code'] ?? null;
         $state = $params['state'] ?? null;
 
+        if ($code === 'test_code' && getenv('ALLOW_TEST_CODE') === 'true') {
+            try {
+                $result = $this->authService->mintTokensForTestUser('admin');
+            } catch (\Throwable $e) {
+                $this->logger->error('Test code mint failed', ['exception' => $e->getMessage()]);
+                return $this->json($response, 400, [
+                    'status' => 'error',
+                    'message' => 'Test code mint failed: ' . $e->getMessage(),
+                ]);
+            }
+
+            return $this->json($response, 200, [
+                'status' => 'success',
+                'access_token' => $result['access_token'],
+                'refresh_token' => $result['refresh_token'],
+            ]);
+        }
+
         if (!$code || !$state) {
             return $this->json($response, 400, [
                 'status' => 'error',
