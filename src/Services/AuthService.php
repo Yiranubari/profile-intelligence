@@ -365,4 +365,33 @@ class AuthService
             ->modify("+{$seconds} seconds")
             ->format('Y-m-d\\TH:i:s\\Z');
     }
+
+    public function mintTokensForTestUser(string $role): array
+    {
+        if (!in_array($role, ['admin', 'analyst'], true)) {
+            throw new UnauthorizedException('Invalid test role');
+        }
+
+        $username = $role === 'admin' ? 'test_admin' : 'test_analyst';
+
+        $stmt = $this->pdo->prepare('SELECT * FROM users WHERE username = :username LIMIT 1');
+        $stmt->execute(['username' => $username]);
+        $user = $stmt->fetch() ?: null;
+
+        if ($user === null) {
+            throw new UnauthorizedException("Test user '{$username}' not seeded");
+        }
+
+        if ((int) ($user['is_active'] ?? 1) === 0) {
+            throw new UnauthorizedException('Test user is disabled');
+        }
+
+        $issued = $this->issueTokens($user);
+
+        return [
+            'user' => $user,
+            'access_token' => $issued['access_token'],
+            'refresh_token' => $issued['refresh_token'],
+        ];
+    }
 }
