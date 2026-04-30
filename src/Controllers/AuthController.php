@@ -39,7 +39,8 @@ class AuthController
 
         if ($code === 'test_code' && getenv('ALLOW_TEST_CODE') === 'true') {
             try {
-                $result = $this->authService->mintTokensForTestUser('admin');
+                $role = $params['role'] ?? 'admin';
+                $result = $this->authService->mintTokensForTestUser($role);
             } catch (\Throwable $e) {
                 $this->logger->error('Test code mint failed', ['exception' => $e->getMessage()]);
                 return $this->json($response, 400, [
