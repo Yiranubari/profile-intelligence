@@ -21,8 +21,7 @@ return function (App $app) {
             return $res->withStatus(403)->withHeader('Content-Type', 'application/json');
         }
 
-        require __DIR__ . '/../scripts/seed_test_users.php';
-
+        require __DIR__ . '/../../scripts/seed_test_users.php';
         $res->getBody()->write(json_encode(['status' => 'success', 'message' => 'seeded']));
         return $res->withHeader('Content-Type', 'application/json');
     });
