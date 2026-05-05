@@ -15,6 +15,8 @@ return function (App $app) {
         $group->get('/profiles', [ProfileController::class, 'getAll']);
         $group->get('/profiles/search', [ProfileController::class, 'search']);
         $group->get('/profiles/export', [ProfileController::class, 'export']);
+        $group->post('/profiles/upload', [ProfileController::class, 'upload'])
+            ->add('role.admin');
         $group->get('/profiles/{id}', [ProfileController::class, 'getOne']);
         $group->post('/profiles', [ProfileController::class, 'create'])
             ->add('role.admin');

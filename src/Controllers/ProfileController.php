@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Services\CsvExportService;
+use App\Services\CsvIngestionService;
 use App\Services\ProfileService;
 use App\Services\CacheService;
 use App\Services\QueryNormalizer;
@@ -18,7 +19,8 @@ class ProfileController
         private ProfileService $service,
         private LoggerInterface $logger,
         private CsvExportService $csvService,
-        private CacheService $cache
+        private CacheService $cache,
+        private CsvIngestionService $ingestionService
     ) {}
 
     public function create(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -252,6 +254,46 @@ class ProfileController
         $rows = $this->service->exportProfiles($filters);
 
         return $this->csvService->streamCsv($rows, $response);
+    }
+
+    public function upload(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $uploadedFiles = $request->getUploadedFiles();
+        $file = $uploadedFiles['file'] ?? null;
+
+        if ($file === null) {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => 'No file uploaded',
+            ]);
+        }
+
+        if ($file->getError() !== UPLOAD_ERR_OK) {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => 'Upload failed',
+            ]);
+        }
+
+        $tmpPath = tempnam(sys_get_temp_dir(), 'ingest_');
+        $file->moveTo($tmpPath);
+
+        try {
+            $summary = $this->ingestionService->ingest($tmpPath);
+            $this->cache->invalidate('profiles');
+
+            return $this->json($response, 200, array_merge(
+                ['status' => 'success'],
+                $summary
+            ));
+        } catch (\RuntimeException $e) {
+            return $this->json($response, 400, [
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        } finally {
+            @unlink($tmpPath);
+        }
     }
 
     private function buildPaginatedResponse(
