@@ -84,9 +84,9 @@ class AuthController
         }
 
         if ($result['client_type'] === 'web') {
-            $response = $this->setAuthCookies($response, $result['access_token'], $result['refresh_token']);
-            return $response
-                ->withHeader('Location', $this->webPortalUrl . '/dashboard')
+            $auth = $this->setAuthCookies($response, $result['access_token'], $result['refresh_token']);
+            return $auth['response']
+                ->withHeader('Location', $this->webPortalUrl . '/dashboard?csrf=' . $auth['csrf_token'])
                 ->withStatus(302);
         }
 
@@ -172,14 +172,18 @@ class AuthController
         }
 
         $cookies = $request->getCookieParams();
+        $csrfToken = null;
         if (isset($cookies['refresh_token'])) {
-            $response = $this->setAuthCookies($response, $result['access_token'], $result['refresh_token']);
+            $auth = $this->setAuthCookies($response, $result['access_token'], $result['refresh_token']);
+            $response = $auth['response'];
+            $csrfToken = $auth['csrf_token'];
         }
 
         return $this->json($response, 200, [
             'status' => 'success',
             'access_token' => $result['access_token'],
             'refresh_token' => $result['refresh_token'],
+            'csrf_token' => $csrfToken,
         ]);
     }
     public function logout(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -235,7 +239,7 @@ class AuthController
             ],
         ]);
     }
-    private function setAuthCookies(ResponseInterface $response, string $accessToken, string $refreshToken): ResponseInterface
+    private function setAuthCookies(ResponseInterface $response, string $accessToken, string $refreshToken): array
     {
         $secureFlag = $this->cookieSecure ? '; Secure' : '';
         $csrfToken = bin2hex(random_bytes(32));
@@ -253,7 +257,7 @@ class AuthController
             "csrf_token={$csrfToken}; Path=/; SameSite=None; Max-Age={$this->refreshTtl}{$secureFlag}"
         );
 
-        return $response;
+        return ['response' => $response, 'csrf_token' => $csrfToken];
     }
 
     private function clearAuthCookies(ResponseInterface $response): ResponseInterface
