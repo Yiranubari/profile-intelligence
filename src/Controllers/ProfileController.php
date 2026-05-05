@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Services\CsvExportService;
 use App\Services\ProfileService;
 use App\Services\CacheService;
+use App\Services\QueryNormalizer;
 use App\Validators\ProfileValidator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -294,7 +295,7 @@ class ProfileController
 
     private function buildCacheKey(string $prefix, array $filters): string
     {
-        ksort($filters);
-        return $prefix . ':' . md5(json_encode($filters));
+        $normalized = QueryNormalizer::normalize($filters);
+        return $prefix . ':' . md5(json_encode($normalized));
     }
 }
