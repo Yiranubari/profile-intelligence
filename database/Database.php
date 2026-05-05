@@ -53,9 +53,19 @@ class Database
             country_id          TEXT    NOT NULL,
             country_probability REAL    NOT NULL,
             created_at          TEXT    NOT NULL,
-            country_name        TEXT    NOT NULL
+            country_name        TEXT    NOT NULL DEFAULT ''
         )"
         );
+
+        $this->connection->exec("CREATE INDEX IF NOT EXISTS idx_profiles_gender ON profiles(gender)");
+        $this->connection->exec("CREATE INDEX IF NOT EXISTS idx_profiles_country_id ON profiles(country_id)");
+        $this->connection->exec("CREATE INDEX IF NOT EXISTS idx_profiles_age_group ON profiles(age_group)");
+        $this->connection->exec("CREATE INDEX IF NOT EXISTS idx_profiles_age ON profiles(age)");
+        $this->connection->exec("CREATE INDEX IF NOT EXISTS idx_profiles_gender_probability ON profiles(gender_probability)");
+        $this->connection->exec("CREATE INDEX IF NOT EXISTS idx_profiles_country_probability ON profiles(country_probability)");
+        $this->connection->exec("CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON profiles(created_at)");
+        $this->connection->exec("CREATE INDEX IF NOT EXISTS idx_profiles_gender_country ON profiles(gender, country_id)");
+
 
         $this->connection->exec(
             "CREATE TABLE IF NOT EXISTS users (
