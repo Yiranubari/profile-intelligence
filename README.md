@@ -1,23 +1,26 @@
 # Insighta Labs+ Backend
 
-This is the backend for Insighta Labs+, the secure platform built on top of the Profile Intelligence System from Stage 2. It handles authentication, role based access control, profile management, and serves both the CLI tool and the web portal from a single source of truth.
+This is the backend for Insighta Labs+, the secure platform built on top of the Profile Intelligence System from Stage 2. It handles authentication, role based access control, profile management, large CSV uploads, and serves both the CLI tool and the web portal from a single source of truth.
 
 Live URL: https://profile-intelligence-production.up.railway.app
 
 ## What this backend does
 
-It does five things:
+It does seven things:
 
 1. Authenticates users through GitHub OAuth, with PKCE support for the CLI.
 2. Issues short lived access tokens and rotating refresh tokens.
 3. Enforces role based permissions on every protected endpoint.
 4. Serves the same API to both the CLI and the web portal, with different auth styles for each (Bearer for CLI, HTTP only cookies for web).
-5. Keeps every Stage 2 feature working untouched: filtering, sorting, pagination, natural language search, and CSV export.
+5. Caches repeated query results in Redis with normalized cache keys, so two queries that mean the same thing share one cache entry.
+6. Accepts large CSV uploads (up to 500,000 rows) and ingests them in streaming chunks without blocking other users.
+7. Keeps every Stage 2 feature working untouched: filtering, sorting, pagination, natural language search, and CSV export.
 
 ## Tech stack
 
 - PHP 8.2 with Slim 4 for routing and middleware
-- SQLite for storage, accessed through PDO
+- SQLite for storage, accessed through PDO with persistent connections and WAL mode
+- Redis as the query result cache, accessed through Predis
 - PHP DI for the dependency container
 - Monolog for request and error logging
 - Firebase JWT for signing and verifying access tokens
@@ -43,10 +46,12 @@ Services (src/Services)
   v
 Repositories (src/Repositories)
   v
-Database (database/Database.php)
+Database (database/Database.php)         Cache (Redis via CacheService)
 ```
 
-Controllers handle HTTP concerns only. They read query params, parsed bodies, and cookies, then call services. They never contain business logic. Services hold business logic and orchestrate repositories. Repositories are the only place SQL lives. This separation is what made it possible to add the entire authentication system in Stage 3 without rewriting any Stage 2 code.
+Controllers handle HTTP concerns only. They read query params, parsed bodies, and cookies, then call services. They never contain business logic. Services hold business logic and orchestrate repositories. Repositories are the only place SQL lives. The cache sits beside the database and is accessed from the controller layer through the same dependency injection container as everything else.
+
+This separation is what made it possible to add the entire authentication system in Stage 3, and the caching, normalization, and CSV ingestion in Stage 4, without rewriting any earlier code.
 
 ## Folder structure
 
@@ -73,12 +78,18 @@ profile-intelligence/
     Repositories/
     Routes/
     Services/
+      CacheService.php
+      CsvExportService.php
+      CsvIngestionService.php
+      QueryNormalizer.php
+      ...
     Validators/
   tests/
   .github/workflows/ci.yml
   composer.json
   Dockerfile
   README.md
+  SOLUTION.md
 ```
 
 ## Authentication flow
@@ -95,10 +106,10 @@ Used by the browser based portal.
 4. The backend looks up the session by state, exchanges the GitHub code for a GitHub access token, and fetches the user's profile and email from the GitHub API.
 5. The backend creates the user if they do not exist, or updates their stored details if they do.
 6. The backend issues an access token (JWT) and a refresh token (opaque random string), then sets three cookies on the browser:
-   - `access_token`: HTTP only, Secure, SameSite Lax, 3 minute lifetime
-   - `refresh_token`: HTTP only, Secure, SameSite Lax, 5 minute lifetime
-   - `csrf_token`: NOT HTTP only, readable by JavaScript, used for double submit CSRF protection
-7. The backend redirects the browser to the portal's dashboard.
+   - `access_token`: HTTP only, Secure, SameSite None, 3 minute lifetime
+   - `refresh_token`: HTTP only, Secure, SameSite None, 5 minute lifetime
+   - `csrf_token`: NOT HTTP only, Secure, SameSite None, used for double submit CSRF protection
+7. The backend redirects the browser to the portal's dashboard, with the CSRF token attached as a query parameter so the portal can store it in memory. This is needed because cross-site cookies are not always readable from JavaScript in modern browsers.
 
 ### CLI flow with PKCE
 
@@ -142,7 +153,7 @@ If the same refresh token is ever used twice, the second attempt finds a revoked
 Two roles exist:
 
 - `analyst`: read access only. Can list, view, search, and export profiles. Can view their own user info. This is the default for new users.
-- `admin`: everything analysts can do, plus create and delete profiles, list all users, and change other users' roles.
+- `admin`: everything analysts can do, plus create and delete profiles, upload CSV files, list all users, and change other users' roles.
 
 Enforcement happens in two layers. Every `/api/*` route requires authentication via `AuthMiddleware`, which validates the access token, loads the user, checks `is_active`, and attaches the user to the request. Specific routes that need admin access then add `RoleMiddleware` configured with the required role.
 
@@ -171,6 +182,66 @@ It works in three passes:
 
 If the parser cannot extract any filters from the query, it returns a special marker that the controller turns into a 400 error: "Unable to interpret query".
 
+## Performance optimizations
+
+These were added in Stage 4 to handle larger datasets and higher query volume without changing the public API.
+
+### Indexes
+
+Eight indexes on the `profiles` table cover every column used for filtering and sorting: `gender`, `country_id`, `age_group`, `age`, `gender_probability`, `country_probability`, `created_at`, plus a composite index on `(gender, country_id)` for queries that filter on both at once. Without indexes, SQLite would scan every row. With them, it jumps straight to the matching rows.
+
+### Redis cache
+
+Every list and search query checks Redis first. On a cache hit, the response is served from memory and never touches SQLite. On a miss, the database is queried, the result is stored in Redis with a 60 second TTL, then returned to the client. The cache is invalidated by prefix on profile create, delete, and CSV upload.
+
+### Query normalization
+
+Two queries that mean the same thing should hit the same cache entry. `QueryNormalizer` cleans the filter array before the cache key is built. It lowercases and trims string fields, casts numeric fields to int or float, drops empty values, drops default values like `page=1`, and sorts the keys alphabetically. The cleaned filter is then hashed with `md5(json_encode(...))` to produce the cache key.
+
+### Persistent connections and SQLite tuning
+
+The PDO connection is opened with `PDO::ATTR_PERSISTENT`, so PHP keeps it open between requests within the same worker. SQLite is configured with WAL journal mode, `synchronous = NORMAL`, a 64 MB page cache, and in-memory temp storage. WAL mode is the most important one because it lets reads run while writes are happening, which is what allows large CSV uploads to coexist with live read traffic.
+
+For measured before-and-after numbers, see `SOLUTION.md`.
+
+## CSV ingestion
+
+`POST /api/profiles/upload` accepts a CSV file containing up to 500,000 rows. The endpoint is admin only.
+
+The CSV must have this exact header:
+
+```
+name,gender,gender_probability,sample_size,age,age_group,country_id,country_name,country_probability
+```
+
+The file is read as a stream and processed in chunks of 1,000 rows. Each row is validated. Rows that fail validation are skipped with a reason; the upload continues with the rows that pass. After each chunk, the valid rows are inserted in a single bulk SQL statement using `INSERT ... ON CONFLICT(name) DO NOTHING`, so duplicate names are silently skipped without aborting the batch.
+
+The endpoint returns a summary at the end:
+
+```json
+{
+  "status": "success",
+  "total_rows": 50000,
+  "inserted": 48231,
+  "skipped": 1769,
+  "reasons": {
+    "duplicate_name": 1203,
+    "invalid_age": 312,
+    "missing_fields": 254
+  }
+}
+```
+
+A row is skipped when:
+
+- the column count does not match the header
+- `name` or `country_id` is missing
+- `age` is missing, non-numeric, negative, or above 150
+- `gender` is anything other than `male` or `female` (case-insensitive)
+- the same `name` already exists in the database
+
+If the upload fails midway, rows already inserted stay inserted. There is no rollback. After a successful upload, the cache is invalidated so the next list query reflects the new rows.
+
 ## API endpoints
 
 ### Auth
@@ -191,6 +262,7 @@ All endpoints require `X-API-Version: 1` header.
 - `GET /api/profiles/export?format=csv` exports filtered results as CSV
 - `GET /api/profiles/{id}` retrieves a single profile
 - `POST /api/profiles` creates a profile (admin only)
+- `POST /api/profiles/upload` bulk ingests profiles from a CSV file (admin only)
 - `DELETE /api/profiles/{id}` deletes a profile (admin only)
 
 ### Users
@@ -246,7 +318,7 @@ The middleware reads `X-Forwarded-For` for the real client IP, since Railway run
 
 `LoggerMiddleware` records the start time on every incoming request, calls the handler, then writes a structured log entry with method, path, status code, and duration in milliseconds. Logs go to `logs/app.log` via Monolog. Errors caught by `ErrorHandlerMiddleware` are logged with full stack traces at error level, while normal requests log at info level.
 
-Request bodies, query strings, headers, and cookies are intentionally not logged. They might contain credentials, and logging them would create a secondary leak risk.
+The middleware also adds an `X-Server-Time` response header on every response, which is useful for measuring real server processing time without network latency. Request bodies, query strings, headers, and cookies are intentionally not logged because they might contain credentials.
 
 ## Security posture
 
@@ -264,7 +336,7 @@ Request bodies, query strings, headers, and cookies are intentionally not logged
 
 ## Local development
 
-You will need PHP 8.2+, Composer, and SQLite installed.
+You will need PHP 8.2+, Composer, SQLite, and Redis installed.
 
 Clone the repo:
 
@@ -295,6 +367,21 @@ openssl rand -hex 32
 
 Paste it into `.env` as `JWT_SECRET`.
 
+Make sure Redis is running locally. On Ubuntu:
+
+```
+sudo apt install redis-server
+sudo systemctl start redis-server
+```
+
+Confirm with:
+
+```
+redis-cli ping
+```
+
+Should return `PONG`.
+
 Seed the database:
 
 ```
@@ -324,10 +411,13 @@ The server will be available at `http://localhost:8000`.
 | `REFRESH_TOKEN_TTL`    | Refresh token lifetime in seconds. Defaults to 300          |
 | `WEB_PORTAL_URL`       | Where to redirect the browser after web login               |
 | `COOKIE_SECURE`        | Set to `true` in production (HTTPS), `false` for local dev  |
+| `REDIS_URL`            | Redis connection string, e.g. `redis://localhost:6379`      |
 
 ## Deployment
 
 The backend is deployed on Railway from the `main` branch. The `Dockerfile` builds a PHP FPM container with nginx in front. The `docker/start.sh` script runs the seed, fixes file ownership for the FPM user, and starts both services.
+
+Railway also runs the Redis service in the same project. The backend's `REDIS_URL` is set as a variable reference to the Redis service, so the two communicate over Railway's internal network.
 
 Railway injects environment variables directly into the container. Each merged pull request to `main` triggers an automatic redeploy.
 
