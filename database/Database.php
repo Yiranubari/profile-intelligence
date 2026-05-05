@@ -15,8 +15,15 @@ class Database
     {
         try {
             $path = getenv('DB_PATH') ?: __DIR__ . '/../database/profiles.db';
-            $this->connection = new PDO('sqlite:' . $path);
+            $this->connection = new PDO('sqlite:' . $path, null, null, [
+                PDO::ATTR_PERSISTENT => true,
+            ]);
             $this->connection->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+            $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->connection->exec('PRAGMA journal_mode = WAL');
+            $this->connection->exec('PRAGMA synchronous = NORMAL');
+            $this->connection->exec('PRAGMA cache_size = -64000');
+            $this->connection->exec('PRAGMA temp_store = MEMORY');
             $this->initializeSchema();
             $this->migrateSchema();
         } catch (PDOException $e) {
