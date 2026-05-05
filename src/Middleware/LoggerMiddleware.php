@@ -27,6 +27,6 @@ class LoggerMiddleware implements MiddlewareInterface
             'duration' => $duration . 'ms',
         ]);
 
-        return $response;
+        return $response->withHeader('X-Server-Time', $duration . 'ms');
     }
 }
