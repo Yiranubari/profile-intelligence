@@ -8,6 +8,7 @@ use App\Middleware\CsrfMiddleware;
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
 
+
 return function (App $app) {
     $app->group('/api', function (RouteCollectorProxy $group) {
         // Profiles

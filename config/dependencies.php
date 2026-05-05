@@ -58,12 +58,24 @@ $containerBuilder->addDefinitions([
         return new CsvExportService();
     },
 
+    \Predis\Client::class => function () {
+        return new \Predis\Client(getenv('REDIS_URL') ?: 'redis://localhost:6379');
+    },
+
+    \App\Services\CacheService::class => function (\Psr\Container\ContainerInterface $c) {
+        return new \App\Services\CacheService(
+            $c->get(\Predis\Client::class),
+            60
+        );
+    },
+
     // Controller
     ProfileController::class => function (ContainerInterface $container) {
         return new ProfileController(
             $container->get(ProfileService::class),
             $container->get(LoggerInterface::class),
-            $container->get(CsvExportService::class)
+            $container->get(CsvExportService::class),
+            $container->get(\App\Services\CacheService::class)
         );
     },
 

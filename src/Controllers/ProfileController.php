@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Services\CsvExportService;
 use App\Services\ProfileService;
+use App\Services\CacheService;
 use App\Validators\ProfileValidator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -15,7 +16,8 @@ class ProfileController
     public function __construct(
         private ProfileService $service,
         private LoggerInterface $logger,
-        private CsvExportService $csvService
+        private CsvExportService $csvService,
+        private CacheService $cache
     ) {}
 
     public function create(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -25,6 +27,7 @@ class ProfileController
 
         $name = trim($body['name']);
         $profile = $this->service->createProfile($name);
+        $this->cache->invalidate('profiles');
 
         return $this->json($response, 201, [
             'status' => 'success',
@@ -104,7 +107,22 @@ class ProfileController
             }
         }
 
+        $cacheKey = $this->buildCacheKey('profiles:list', $filters);
+        $cached = $this->cache->get($cacheKey);
+
+        if ($cached !== null) {
+            return $this->buildPaginatedResponse(
+                $response,
+                $cached,
+                $filters,
+                '/api/profiles',
+                $queryParams
+            );
+        }
+
         $result = $this->service->getAllProfiles($filters);
+
+        $this->cache->set($cacheKey, $result);
 
         return $this->buildPaginatedResponse(
             $response,
@@ -119,6 +137,7 @@ class ProfileController
     {
         $id = $args['id'];
         $this->service->deleteProfile($id);
+        $this->cache->invalidate('profiles');
 
         return $response->withStatus(204);
     }
@@ -145,6 +164,7 @@ class ProfileController
 
         $parser = new QueryParser();
         $filters = $parser->parse($q);
+        $filters['q'] = $q;
 
         if (isset($filters['_uninterpretable'])) {
             return $this->json($response, 400, [
@@ -183,7 +203,22 @@ class ProfileController
             ]);
         }
 
+        $cacheKey = $this->buildCacheKey('profiles:search', $filters);
+        $cached = $this->cache->get($cacheKey);
+
+        if ($cached !== null) {
+            return $this->buildPaginatedResponse(
+                $response,
+                $cached,
+                $filters,
+                '/api/profiles/search',
+                $queryParams
+            );
+        }
+
         $result = $this->service->getAllProfiles($filters);
+
+        $this->cache->set($cacheKey, $result);
 
         return $this->buildPaginatedResponse(
             $response,
@@ -255,5 +290,11 @@ class ProfileController
             'next' => $page < $totalPages ? $build($page + 1) : null,
             'prev' => $page > 1 ? $build($page - 1) : null,
         ];
+    }
+
+    private function buildCacheKey(string $prefix, array $filters): string
+    {
+        ksort($filters);
+        return $prefix . ':' . md5(json_encode($filters));
     }
 }
