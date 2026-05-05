@@ -69,13 +69,20 @@ $containerBuilder->addDefinitions([
         );
     },
 
+    \App\Services\CsvIngestionService::class => function (\Psr\Container\ContainerInterface $c) {
+        return new \App\Services\CsvIngestionService(
+            $c->get(\App\Database\Database::class)->getConnection()
+        );
+    },
+
     // Controller
     ProfileController::class => function (ContainerInterface $container) {
         return new ProfileController(
             $container->get(ProfileService::class),
             $container->get(LoggerInterface::class),
             $container->get(CsvExportService::class),
-            $container->get(\App\Services\CacheService::class)
+            $container->get(\App\Services\CacheService::class),
+            $container->get(\App\Services\CsvIngestionService::class)
         );
     },
 
