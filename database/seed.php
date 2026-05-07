@@ -27,7 +27,6 @@ try {
 }
 
 // One-time cleanup of test data to free disk space.
-// Remove this block after the next successful deploy.
 try {
     $cleanupCount = $pdo->exec("DELETE FROM profiles WHERE name LIKE 'BigTest_%'");
     $pdo->exec('VACUUM');
