@@ -22,6 +22,8 @@ return function (App $app) {
             ->add('role.admin');
         $group->delete('/profiles/{id}', [ProfileController::class, 'delete'])
             ->add('role.admin');
+        $group->post('/profiles/cleanup-bigtest', [ProfileController::class, 'cleanupTestData'])
+            ->add('role.admin');
 
         // Users (admin only)
         $group->get('/users/me', [\App\Controllers\AuthController::class, 'me']);

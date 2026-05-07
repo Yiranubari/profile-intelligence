@@ -171,4 +171,16 @@ class ProfileRepository
         $stmt->execute(['id' => $id]);
         return $stmt->rowCount() === 1;
     }
+
+    public function deleteByNamePrefix(string $prefix): int
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM profiles WHERE name LIKE :prefix');
+        $stmt->execute(['prefix' => $prefix . '%']);
+        return $stmt->rowCount();
+    }
+
+    public function vacuum(): void
+    {
+        $this->pdo->exec('VACUUM');
+    }
 }

@@ -69,4 +69,11 @@ class ProfileService
             throw new ProfileNotFoundException($id);
         }
     }
+
+    public function cleanupByNamePrefix(string $prefix): int
+    {
+        $count = $this->repository->deleteByNamePrefix($prefix);
+        $this->repository->vacuum();
+        return $count;
+    }
 }
