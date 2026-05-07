@@ -26,14 +26,6 @@ try {
     die("Error connecting to database: " . $e->getMessage() . "\n");
 }
 
-// One-time cleanup of test data to free disk space.
-try {
-    $cleanupCount = $pdo->exec("DELETE FROM profiles WHERE name LIKE 'BigTest_%'");
-    $pdo->exec('VACUUM');
-    echo "Cleaned up {$cleanupCount} BigTest rows.\n";
-} catch (\Throwable $e) {
-    echo "Cleanup failed: " . $e->getMessage() . "\n";
-}
 
 $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM profiles WHERE LOWER(name) = LOWER(:name)");
 
