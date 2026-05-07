@@ -340,4 +340,15 @@ class ProfileController
         $normalized = QueryNormalizer::normalize($filters);
         return $prefix . ':' . md5(json_encode($normalized));
     }
+
+    public function cleanupTestData(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $deleted = $this->service->cleanupByNamePrefix('BigTest_');
+        $this->cache->invalidate('profiles');
+
+        return $this->json($response, 200, [
+            'status' => 'success',
+            'deleted' => $deleted,
+        ]);
+    }
 }
